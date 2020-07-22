@@ -3,6 +3,12 @@
 #include <stdlib.h> /* NULL */
 #include <stdio.h>
 
+#define EXPECT(c, ch)             \
+    do                            \
+    {                             \
+        assert(c->json[0] == ch); \
+        c->json++;                \
+    }while(0)
 lept_type lept_get_type(const lept_value *v)
 {
     return v->type;
@@ -22,35 +28,23 @@ void lept_parse_white_space(lept_context *c)
 {
     const char *chrp = c->json;
     while (*chrp == ' ' || *chrp == '\t' || *chrp == '\r' || *chrp == '\n')
-        chrp++;
+        chrp++;//消除空白符，有空格，制表符，回车符，换行符，是json标准规定的四个空白值
     c->json = chrp;
     return;
 }
-int lept_parse_null(lept_context *c, lept_value *v)
+
+int lept_parse_literal(lept_context *c,lept_value *v,const char *literal,lept_type type)
 {
-    assert(*c->json == 'n');
-    if (c->json[0] != 'n' || c->json[1] != 'u' || c->json[2] != 'l' || c->json[3] != 'l')
-        return LEPT_PARSE_INVALID_VALUE;
-    c->json += 4;
-    v->type = LEPT_NULL;
-    return LEPT_PARSE_OK;
-}
-int lept_parse_false(lept_context *c, lept_value *v)
-{
-    assert(*c->json == 'f');
-    if (c->json[0] != 'f' || c->json[1] != 'a' || c->json[2] != 'l' || c->json[3] != 's' || c->json[4] != 'e')
-        return LEPT_PARSE_INVALID_VALUE;
-    c->json += 5;
-    v->type = LEPT_FALSE;
-    return LEPT_PARSE_OK;
-}
-int lept_parse_true(lept_context *c, lept_value *v)
-{
-    assert(*c->json == 't');
-    if (c->json[0] != 't' || c->json[1] != 'r' || c->json[2] != 'u' || c->json[3] != 'e')
-        return LEPT_PARSE_INVALID_VALUE;
-    c->json += 4;
-    v->type = LEPT_TRUE;
+    EXPECT(c, literal[0]);
+    for (int i = 0; literal[i+1]!='\0';i++)
+    {
+        if(c->json[0]!=literal[i+1])
+        {
+            return LEPT_PARSE_INVALID_VALUE;
+        }
+        c->json++;
+    }
+    v->type = type;
     return LEPT_PARSE_OK;
 }
 
@@ -59,13 +53,13 @@ int lept_parse_value(lept_context *c, lept_value *v)
     switch (*c->json)
     {
     case 'n':
-        return lept_parse_null(c, v);
+        return lept_parse_literal(c,v,"null",LEPT_NULL);
 
     case 'f':
-        return lept_parse_false(c, v);
+        return lept_parse_literal(c, v, "false", LEPT_FALSE);
 
     case 't':
-        return lept_parse_true(c, v);
+        return lept_parse_literal(c, v,"true",LEPT_TRUE);
 
     case '\0':
 
