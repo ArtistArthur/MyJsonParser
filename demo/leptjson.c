@@ -1,7 +1,9 @@
 #include "leptjson.h"
 #include <assert.h> /* assert() */
-#include <stdlib.h> /* NULL */
+#include <stdlib.h> /* NULL strtod() */
 #include <stdio.h>
+#include<errno.h>//errno ERANGE
+#include<math.h>//HUGE_VAL
 
 #define EXPECT(c, ch)             \
     do                            \
@@ -9,6 +11,8 @@
         assert(c->json[0] == ch); \
         c->json++;                \
     }while(0)
+#define ISDIGIT(ch) ((ch)>='0'&&(ch)<='9')
+
 lept_type lept_get_type(const lept_value *v)
 {
     return v->type;
@@ -47,7 +51,46 @@ int lept_parse_literal(lept_context *c,lept_value *v,const char *literal,lept_ty
     v->type = type;
     return LEPT_PARSE_OK;
 }
+int lept_parse_number(lept_context*c, lept_value*v)
+{
+    assert(v != NULL);
+    const char *p = c->json;
+    if(p[0]=='-')p++;
+    if(!ISDIGIT(p[0])) return LEPT_PARSE_INVALID_VALUE;
+    if(p[0]=='0')p++;
+    else {
+        for (p++; ISDIGIT(*p);p++)
+            ;
+    }
+    if(p[0]=='.')
+    {
+        p++;
+        if(!ISDIGIT(*p))
+            return LEPT_PARSE_INVALID_VALUE;
+        for (p++; ISDIGIT(*p);p++)
+            ;
+           
+    }
 
+    if (*p == 'e' || *p == 'E')
+    {
+        p++;
+        if(*p=='+'||*p=='-')
+            p++;
+        if(!ISDIGIT(*p))
+            return LEPT_PARSE_INVALID_VALUE;
+        for (p++; ISDIGIT(*p);p++)
+            ;
+    }
+    errno = 0;
+    v->n = strtod(c->json, NULL);
+    if(errno==ERANGE&&v->n==HUGE_VAL)//strtod()会在遇到溢出错误时把errno置为ERANGE，并返回HUGE_VAL
+        return LEPT_PARSE_NUMBER_TOO_BIG;
+    c->json = p;
+    v->type = LEPT_NUMBER;
+    return LEPT_PARSE_OK;
+
+}
 int lept_parse_value(lept_context *c, lept_value *v)
 {
     switch (*c->json)
@@ -60,12 +103,10 @@ int lept_parse_value(lept_context *c, lept_value *v)
 
     case 't':
         return lept_parse_literal(c, v,"true",LEPT_TRUE);
-
     case '\0':
-
         return LEPT_PARSE_EXPECT_VALUE;
     default:
-        return LEPT_PARSE_INVALID_VALUE;
+        return lept_parse_number(c,v);
     }
 }
 int lept_parse(lept_value *v, const char *json) //解析函数
