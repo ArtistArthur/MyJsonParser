@@ -130,6 +130,31 @@ static void test_parse_root_not_singular() {
     EXPECT_EQ_INT(LEPT_NULL, lept_get_type(&v));
 }
 
+// #define TEST_STRING(expect, json)\
+//     do {\
+//         lept_value v;\
+//         lept_init(&v);\
+//         EXPECT_EQ_INT(LEPT_PARSE_OK, lept_parse(&v, json));\
+//         EXPECT_EQ_INT(LEPT_STRING, lept_get_type(&v));\
+//         EXPECT_EQ_STRING(expect, lept_get_string(&v), lept_get_string_length(&v));\
+//         lept_free(&v);\
+//     } while(0)
+
+// static void test_parse_string() {
+//     TEST_STRING("", "\"\"");
+//     TEST_STRING("Hello", "\"Hello\"");
+// #if 0
+//     TEST_STRING("Hello\nWorld", "\"Hello\\nWorld\"");
+//     TEST_STRING("\" \\ / \b \f \n \r \t", "\"\\\" \\\\ \\/ \\b \\f \\n \\r \\t\"");
+// #endif
+// }
+
+static void test_parse_string() {
+    lept_value v;
+    v.type = LEPT_NULL;
+    EXPECT_EQ_INT(LEPT_PARSE_OK, lept_parse(&v, "\"this is string\""));
+}
+
 static void test_parse() {
     test_parse_null();
     test_parse_true();
@@ -138,6 +163,7 @@ static void test_parse() {
     test_parse_invalid_value();
     test_parse_root_not_singular();
     test_parse_number();
+    test_parse_string();
 }
 int main() { 
     test_parse();
