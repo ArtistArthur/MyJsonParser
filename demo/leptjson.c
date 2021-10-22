@@ -55,7 +55,7 @@ void* lept_context_push(lept_context* ctx, size_t size) {
 }
 
 void* lept_context_pop(lept_context* ctx, size_t size) {
-    assert(ctx->top > size);
+    assert(ctx->top >= size);
     ctx->top -= size;
     return ctx->stack + ctx->top;
 }
@@ -138,7 +138,7 @@ int lept_parse_string(lept_context* c, lept_value* v) {
     char ch = *p++; 
     switch(ch) {
         case '\"':
-            c->json += c->top;
+            c->json = p;
             len = c->top - head;
             lept_set_string(v, (const char*)lept_context_pop(c, len), len);
             return  LEPT_PARSE_OK;
@@ -146,9 +146,6 @@ int lept_parse_string(lept_context* c, lept_value* v) {
             return LEPT_PARSE_MISS_QUOTATION_MARK;
         default:
             lept_put(c, ch);
-    }
-    while(*p != "\"" && *p != "\"") {
-        p++;
     }
     size_t size = p - c->json;
     }
