@@ -2,6 +2,7 @@
 #include <assert.h> /* assert() */
 #include <stdlib.h> /* NULL strtod() */
 #include <stdio.h>
+#include<string.h>
 #include<errno.h>//errno ERANGE
 #include<math.h>//HUGE_VAL
 
@@ -13,7 +14,6 @@
     }while(0)
 #define ISDIGIT(ch) ((ch)>='0'&&(ch)<='9')
 
-#define lept_init(v) do { (v)->type = LEPT_NULL; } while(0)
 
 lept_type lept_get_type(const lept_value *v)
 {
@@ -64,6 +64,18 @@ void lept_put(lept_context* c, char ch) {
     char* p = (char*)lept_context_push(c, sizeof(ch));
     *p = ch;
     return;
+}
+
+size_t lept_get_string_length(lept_value* v) {
+    assert(v != NULL);
+    assert(v->type == LEPT_STRING);
+    return v->len;
+}
+
+const char* lept_get_string(lept_value* v) {
+    assert(v != NULL);
+    assert(v->type == LEPT_STRING);
+    return v->s;
 }
 
 void lept_set_string(lept_value* v, const char* s, size_t len)
@@ -137,6 +149,39 @@ int lept_parse_string(lept_context* c, lept_value* v) {
         
     char ch = *p++; 
     switch(ch) {
+        case '\\':
+            ch = *p++;
+            switch (ch)
+            {
+            case 'b':
+                lept_put(c, '\b');
+                break;
+            case 't':
+                lept_put(c, '\t');
+                break;
+            case 'n':
+                lept_put(c, '\n');
+                break;
+            case '\\':
+                lept_put(c, '\\');
+                break;
+            case 'r':
+                lept_put(c, '\r');
+                break;
+            case '/':
+                lept_put(c, '/');
+                break;
+            case 'f':
+                lept_put(c, '\f');
+                break;
+            case '\"':
+                lept_put(c, '\"');
+                break;
+            default:
+                c->top = head;
+                return LEPT_PARSE_STRING_BAD_ESCAPE;
+            }
+            break;
         case '\"':
             c->json = p;
             len = c->top - head;
@@ -147,7 +192,6 @@ int lept_parse_string(lept_context* c, lept_value* v) {
         default:
             lept_put(c, ch);
     }
-    size_t size = p - c->json;
     }
 }
 int lept_parse_number(lept_context*c, lept_value*v)
